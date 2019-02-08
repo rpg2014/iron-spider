@@ -7,3 +7,4 @@ edition = "2018"
 [dependencies]
 discord = { git = "https://github.com/ArtemGr/discord-rs.git" }
 config = "0.9"
+reqwest = "0.9.9"
