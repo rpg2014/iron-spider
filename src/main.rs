@@ -24,6 +24,7 @@ fn main() {
 			.merge(config::Environment::with_prefix("IRON_SPIDER"))
 			.unwrap();
 		settings.set("ON_CLOUD",true).unwrap();
+		settings.set("PORT",$env::var("PORT").unwrap()).unwrap();
 		println!("On docker")
 	} else {
 		println!("Running locally");
@@ -31,6 +32,14 @@ fn main() {
 			.merge(config::File::with_name(".settings.yaml"))
 			.unwrap();
 	}
+	//will listen so we dont get killed
+	thread::spawn(move ||{
+		let ip = "0.0.0.0:".to_owned();
+		let port = settings.get_str("PORT").unwrap();
+		ip.push_str(&port)
+		let listener = TcpListener::bind(ip)
+	})
+
 	//cloning url here before the settings are moved into the run_discord function
 	let url: String = settings.get("URL").unwrap();
 	thread::spawn(move || {
