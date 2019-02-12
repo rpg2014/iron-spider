@@ -1,7 +1,7 @@
 [package]
 name = "iron-spider"
-version = "0.1.0"
-authors = ["Parker Given <rgiven@amazon.com>"]
+version = "1.0.0"
+authors = ["rpg2014"]
 edition = "2018"
 
 [dependencies]

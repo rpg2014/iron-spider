@@ -1,10 +1,30 @@
-FROM rust:1.32
+FROM rust:1.32 as build
 
-WORKDIR /usr/src/iron-spider
-COPY . .
-
+RUN USER=root cargo new --bin iron-spider
+WORKDIR /iron-spider
+COPY ./Cargo.lock ./Cargo.lock
+COPY ./Cargo.toml ./Cargo.toml
 
 RUN apt-get update && apt-get -y install libsodium-dev pkg-config
-RUN cargo install --path .
 
-CMD ["iron-spider"]
+#build dependencies an cache
+RUN cargo build --release
+RUN rm src/*.rs
+
+COPY ./src ./src
+
+#to rebuild any changes ive made
+RUN rm ./target/release/deps/iron_spider*
+
+RUN cargo build --release
+
+#FROM alpine:latest
+FROM debian:stretch-slim
+ENV ON_CLOUD=true
+ENV IRON_SPIDER_DISCORD_TOKEN=value
+COPY --from=build /iron-spider/target/release/iron-spider .
+
+#RUN apk update && apk add libssl1.1 libsodium ca-certificates bash
+RUN apt-get update && apt-get -y install libsodium18 libssl1.1 ca-certificates
+
+CMD ["./iron-spider"]
