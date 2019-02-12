@@ -1,5 +1,6 @@
 FROM rust:1.32 as build
-RUN  cargo new --bin iron-spider
+
+RUN USER=root cargo new --bin iron-spider
 WORKDIR /iron-spider
 COPY ./Cargo.lock ./Cargo.lock
 COPY ./Cargo.toml ./Cargo.toml
