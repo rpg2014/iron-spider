@@ -6,6 +6,7 @@ use std::env;
 use std::str::FromStr;
 use std::sync::mpsc::channel;
 use std::thread;
+use std::net::TcpListener;
 mod discord_listener;
 
 fn main() {
@@ -24,21 +25,22 @@ fn main() {
 			.merge(config::Environment::with_prefix("IRON_SPIDER"))
 			.unwrap();
 		settings.set("ON_CLOUD",true).unwrap();
-		settings.set("PORT",$env::var("PORT").unwrap()).unwrap();
+		settings.set("PORT",env::var("PORT").unwrap()).unwrap();
 		println!("On docker")
 	} else {
 		println!("Running locally");
 		settings
 			.merge(config::File::with_name(".settings.yaml"))
 			.unwrap();
+		settings.set("ON_CLOUD",false).unwrap();
 	}
 	//will listen so we dont get killed
+	let port = settings.get_str("PORT").unwrap();
 	thread::spawn(move ||{
-		let ip = "0.0.0.0:".to_owned();
-		let port = settings.get_str("PORT").unwrap();
-		ip.push_str(&port)
-		let listener = TcpListener::bind(ip)
-	})
+		let mut ip = "0.0.0.0:".to_owned();
+		ip.push_str(&port);
+		let _listener = TcpListener::bind(ip);
+	});
 
 	//cloning url here before the settings are moved into the run_discord function
 	let url: String = settings.get("URL").unwrap();
