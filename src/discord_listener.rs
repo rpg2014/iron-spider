@@ -8,7 +8,7 @@ use std::process;
 pub fn run_discord(tx: Sender<String>, settings: config::Config) {
 	let discord;
 	if settings.get("ON_CLOUD").unwrap() {
-		discord = Discord::from_bot_token(&settings.get_str("IRON_SPIDER_DISCORD_TOKEN").unwrap_or("None"))
+		discord = Discord::from_bot_token(&settings.get_str("IRON_SPIDER_DISCORD_TOKEN").unwrap_or("None".to_string()))
 			.expect("login failed");
 	} else {
 		discord = get_local_discord(&settings)
