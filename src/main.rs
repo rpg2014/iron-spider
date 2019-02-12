@@ -39,7 +39,9 @@ fn main() {
 	thread::spawn(move ||{
 		let mut ip = "0.0.0.0:".to_owned();
 		ip.push_str(&port);
-		let _listener = TcpListener::bind(ip);
+		println!("Binding to {}",ip);
+		let listener = TcpListener::bind(ip).unwrap();
+		for _ in listener.incoming() {};
 	});
 
 	//cloning url here before the settings are moved into the run_discord function
