@@ -1,5 +1,5 @@
 FROM rust:1.32 as build
-RUN adduser -D builder
+RUN adduser -m builder
 USER builder
 RUN USER=builder cargo new --bin iron-spider
 WORKDIR /iron-spider
