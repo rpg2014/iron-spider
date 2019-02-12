@@ -7,7 +7,7 @@ use std::process;
 //move below to new file
 pub fn run_discord(tx: Sender<String>, settings: config::Config) {
 	let discord;
-	if settings.get("ON_CLOUD").unwrap_or(false) {
+	if settings.get("ON_CLOUD").unwrap() {
 		discord = Discord::from_bot_token(&settings.get_str("IRON_SPIDER_DISCORD_TOKEN").unwrap())
 			.expect("login failed");
 	} else {
@@ -17,8 +17,25 @@ pub fn run_discord(tx: Sender<String>, settings: config::Config) {
 	let (mut connection, _) = discord.connect().expect("connect failed");
 	println!("Gateway Connected, listening...");
 	loop {
-		match connection.recv_event() {
-			Ok(Event::MessageCreate(message)) => {
+		let event = match connection.recv_event() {
+			Ok(event) => event,
+			Err(err) => {
+				println!("Receive error: {:?}", err);
+				if let discord::Error::WebSocket(..) = err {
+						//Handle dropped web connection
+						let (new_conn,_) = discord.connect().expect("connection failed");
+						connection = new_conn;
+						println!("Reconnected");
+					}
+				if let discord::Error::Closed(..) = err {
+					break
+				}
+				continue
+				},
+		};
+
+		match event {
+			Event::MessageCreate(message) => {
 				let text: String = message.content.clone();
 				if text.starts_with("!") {
 					match text.as_ref() {
@@ -52,12 +69,7 @@ pub fn run_discord(tx: Sender<String>, settings: config::Config) {
 					break;
 				}
 			}
-			Ok(_) => {}
-			Err(discord::Error::Closed(code, body)) => {
-				println!("Gateway closed on us with code {:?}: {}", code, body);
-				break;
-			}
-			Err(err) => println!("Receive error: {:?}", err),
+			_ => {}
 		}
 	}
 }

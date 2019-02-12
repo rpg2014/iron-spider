@@ -11,7 +11,7 @@ mod discord_listener;
 fn main() {
 	let (tx, rx) = channel();
 	let mut settings = config::Config::default();
-	if bool::from_str(&env::var("ON_CLOUD").unwrap_or("false".to_string())).unwrap_or(false) {
+	if bool::from_str(&env::var("ON_CLOUD").unwrap_or("false".to_string())).unwrap() {
 		//if in cloud or docker container
 		//settings.set("ON_CLOUD",true).unwrap();
 		settings
@@ -23,6 +23,7 @@ fn main() {
 		settings
 			.merge(config::Environment::with_prefix("IRON_SPIDER"))
 			.unwrap();
+		settings.set("ON_CLOUD",true).unwrap();
 		println!("On docker")
 	} else {
 		println!("Running locally");
