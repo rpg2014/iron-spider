@@ -1,8 +1,7 @@
-use std::sync::mpsc::Sender;
 use discord::model::Event;
 use discord::Discord;
 use std::process;
-
+use std::sync::mpsc::Sender;
 
 //move below to new file
 pub fn run_discord(tx: Sender<String>, settings: config::Config) {
@@ -22,16 +21,16 @@ pub fn run_discord(tx: Sender<String>, settings: config::Config) {
 			Err(err) => {
 				println!("Receive error: {:?}", err);
 				if let discord::Error::WebSocket(..) = err {
-						//Handle dropped web connection
-						let (new_conn,_) = discord.connect().expect("connection failed");
-						connection = new_conn;
-						println!("Reconnected");
-					}
-				if let discord::Error::Closed(..) = err {
-					break
+					//Handle dropped web connection
+					let (new_conn, _) = discord.connect().expect("connection failed");
+					connection = new_conn;
+					println!("Reconnected");
 				}
-				continue
-				},
+				if let discord::Error::Closed(..) = err {
+					break;
+				}
+				continue;
+			}
 		};
 
 		match event {

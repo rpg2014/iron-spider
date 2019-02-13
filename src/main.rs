@@ -3,11 +3,12 @@ extern crate discord;
 extern crate reqwest;
 
 use std::env;
+use std::net::TcpListener;
 use std::str::FromStr;
 use std::sync::mpsc::channel;
 use std::thread;
-use std::net::TcpListener;
 mod discord_listener;
+use std::collections::HashMap;
 
 fn main() {
 	let (tx, rx) = channel();
@@ -24,24 +25,24 @@ fn main() {
 		settings
 			.merge(config::Environment::with_prefix("IRON_SPIDER"))
 			.unwrap();
-		settings.set("ON_CLOUD",true).unwrap();
-		settings.set("PORT",env::var("PORT").unwrap()).unwrap();
+		settings.set("ON_CLOUD", true).unwrap();
+		settings.set("PORT", env::var("PORT").unwrap()).unwrap();
 		println!("On docker")
 	} else {
 		println!("Running locally");
 		settings
 			.merge(config::File::with_name(".settings.yaml"))
 			.unwrap();
-		settings.set("ON_CLOUD",false).unwrap();
+		settings.set("ON_CLOUD", false).unwrap();
 	}
 	//will listen so we dont get killed
 	let port = settings.get_str("PORT").unwrap();
-	thread::spawn(move ||{
+	thread::spawn(move || {
 		let mut ip = "0.0.0.0:".to_owned();
 		ip.push_str(&port);
-		println!("Binding to {}",ip);
+		println!("Binding to {}", ip);
 		let listener = TcpListener::bind(ip).unwrap();
-		for _ in listener.incoming() {};
+		for _ in listener.incoming() {}
 	});
 
 	//cloning url here before the settings are moved into the run_discord function
@@ -51,15 +52,16 @@ fn main() {
 	});
 
 	let client = reqwest::Client::new();
-	
+
 	loop {
 		let text: String = rx.recv().unwrap_or_default();
 		if text.chars().count() >= 2 {
 			print!("Sending text \"{}\" to url: {}\t->", text, url);
-			let params = [("text", text)];
+			let mut map = HashMap::new();
+			map.insert("text", text);
 			let res = client
 				.post(&url)
-				.form(&params)
+				.json(&map)
 				.send()
 				.expect("URL failed to parse");
 			println!("\tResponse: {}", res.status());
