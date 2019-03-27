@@ -42,7 +42,12 @@ fn main() {
 		ip.push_str(&port);
 		println!("Binding to {}", ip);
 		let listener = TcpListener::bind(ip).unwrap();
-		for _ in listener.incoming() {}
+		for stream in listener.incoming() {
+			match stream {
+				Ok(_) => {}
+				Err(_)=> {}
+			}
+		}
 	});
 
 	//cloning url here before the settings are moved into the run_discord function
