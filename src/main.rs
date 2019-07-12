@@ -1,19 +1,25 @@
 extern crate config;
 extern crate discord;
 extern crate reqwest;
+extern crate pretty_env_logger;
+#[macro_use] extern crate log;
 
 use std::env;
 use std::net::TcpListener;
+use std::io::Write;
+use std::io::Read;
 use std::str::FromStr;
 use std::sync::mpsc::channel;
 use std::thread;
+use std::error::Error;
 mod discord_listener;
 use std::collections::HashMap;
 
-fn main() {
+fn main() -> Result<(), Box<dyn Error>> {
+	pretty_env_logger::init();
 	let (tx, rx) = channel();
 	let mut settings = config::Config::default();
-	if bool::from_str(&env::var("ON_CLOUD").unwrap_or("false".to_string())).unwrap() {
+	if bool::from_str(&env::var("ON_CLOUD").unwrap_or("false".to_string()))? {
 		//if in cloud or docker container
 		//settings.set("ON_CLOUD",true).unwrap();
 		settings
@@ -27,9 +33,9 @@ fn main() {
 			.unwrap();
 		settings.set("ON_CLOUD", true).unwrap();
 		settings.set("PORT", env::var("PORT").unwrap()).unwrap();
-		println!("On docker")
+		info!("On docker")
 	} else {
-		println!("Running locally");
+		info!("Running locally");
 		settings
 			.merge(config::File::with_name(".settings.yaml"))
 			.unwrap();
@@ -40,13 +46,25 @@ fn main() {
 	thread::spawn(move || {
 		let mut ip = "0.0.0.0:".to_owned();
 		ip.push_str(&port);
-		println!("Binding to {}", ip);
+		info!("Binding to {}", ip);
 		let listener = TcpListener::bind(ip).unwrap();
 		for stream in listener.incoming() {
-			match stream {
-				Ok(_) => {}
-				Err(_)=> {}
+			info!("Got tcp request");
+			if let Ok(mut s) = stream {
+				let mut data = [0 as u8; 50]; // using 50 byte buffer
+				// this next block is the conditional of the while block
+				while match s.read(&mut data) {
+					Ok(size) => {
+						// Echo data
+						s.write(&data[0..size]).unwrap();
+						false
+					},
+					Err(_) => {
+						false
+					}
+				} { } // this thing is the body of the while loop
 			}
+			info!("Echoed TCP request");
 		}
 	});
 
@@ -69,7 +87,7 @@ fn main() {
 				.json(&map)
 				.send()
 				.expect("URL failed to parse");
-			println!("\tResponse: {}", res.status());
+			info!("\tResponse: {}", res.status());
 		}
 	}
 }

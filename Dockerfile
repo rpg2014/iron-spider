@@ -21,6 +21,7 @@ RUN cargo build --release
 #FROM alpine:latest
 FROM debian:stretch-slim
 ENV ON_CLOUD=true
+ENV RUST_LOG=iron-spider=trace
 COPY --from=build /iron-spider/target/release/iron-spider .
 
 #RUN apk update && apk add libssl1.1 libsodium ca-certificates bash
