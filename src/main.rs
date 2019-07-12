@@ -36,11 +36,12 @@ fn main() -> Result<(), Box<dyn Error>> {
 		info!("On docker")
 	} else {
 		info!("Running locally");
-		settings
+		settings 
 			.merge(config::File::with_name(".settings.yaml"))
 			.unwrap();
 		settings.set("ON_CLOUD", false).unwrap();
 	}
+
 	//will listen so we dont get killed
 	let port = settings.get_str("PORT").unwrap();
 	thread::spawn(move || {
@@ -55,6 +56,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 				// this next block is the conditional of the while block
 				while match s.read(&mut data) {
 					Ok(size) => {
+						info!("{}", String::from_utf8(data.to_vec()).unwrap());
 						// Echo data
 						s.write(&data[0..size]).unwrap();
 						false
