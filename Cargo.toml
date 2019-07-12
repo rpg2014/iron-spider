@@ -8,3 +8,5 @@ edition = "2018"
 discord = { git = "https://github.com/ArtemGr/discord-rs.git" }
 config = "0.9"
 reqwest = "0.9.9"
+log = "0.4"
+pretty_env_logger = "0.3.0"
