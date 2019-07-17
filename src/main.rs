@@ -39,12 +39,18 @@ fn main() -> Result<(), Box<dyn Error>> {
     //spawn redirect server
     let port = settings.get_str("PORT")?;
     let redirect_url = settings.get_str("S3_URL")?;
-    thread::spawn(move || while match http_redirect_server::start_redirect_server(&port, &redirect_url) {
+    thread::spawn(move || {
+        let mut retry_count = 0;
+        while match http_redirect_server::start_redirect_server(&port, &redirect_url)  {
         Ok(_) => true,
         Err(e) => {println!("{:?}", e);
+                     
                     true    
                   },
-    }{});
+    } && retry_count < 10{
+        retry_count += 1;
+    }
+    });
 
     //cloning url here before the settings are moved into the run_discord function
     let url: String = settings.get("URL")?;
