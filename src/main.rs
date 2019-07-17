@@ -7,14 +7,13 @@ extern crate log;
 
 use std::env;
 use std::error::Error;
-use std::io::Read;
-use std::io::Write;
-use std::net::TcpListener;
+mod http_redirect_server;
 use std::str::FromStr;
 use std::sync::mpsc::channel;
 use std::thread;
 mod discord_listener;
 use std::collections::HashMap;
+
 
 fn main() -> Result<(), Box<dyn Error>> {
     pretty_env_logger::init();
@@ -23,47 +22,44 @@ fn main() -> Result<(), Box<dyn Error>> {
     if bool::from_str(&env::var("ON_CLOUD").unwrap_or("false".to_string()))? {
         //if in cloud or docker container
         //settings.set("ON_CLOUD",true).unwrap();
-        settings
-            .set(
-                "URL",
-                env::var("URL").unwrap_or("https://jsonplaceholder.typicode.com/posts".to_string()),
-            )
-            .unwrap();
-        settings
-            .merge(config::Environment::with_prefix("IRON_SPIDER"))
-            .unwrap();
-        settings.set("ON_CLOUD", true).unwrap();
-        settings.set("PORT", env::var("PORT").unwrap()).unwrap();
+        settings.set(
+            "URL",
+            env::var("URL").unwrap_or("https://jsonplaceholder.typicode.com/posts".to_string()),
+        )?;
+        settings.merge(config::Environment::with_prefix("IRON_SPIDER"))?;
+        settings.set("ON_CLOUD", true)?;
+        settings.set("PORT", env::var("PORT")?)?;
         info!("On docker")
     } else {
         info!("Running locally");
-        settings
-            .merge(config::File::with_name(".settings.yaml"))
-            .unwrap();
-        settings.set("ON_CLOUD", false).unwrap();
+        settings.merge(config::File::with_name(".settings.yaml"))?;
+        settings.set("ON_CLOUD", false)?;
     }
 
-    //will listen so we dont get killed
-    let port = settings.get_str("PORT").unwrap();
+    //spawn redirect server
+    let port = settings.get_str("PORT")?;
     let redirect_url = settings.get_str("S3_URL")?;
-    thread::spawn(move || {
-        start_redirect_server(&port, &redirect_url);
+    thread::spawn(move || match http_redirect_server::start_redirect_server(&port, &redirect_url) {
+        Ok(_) => {}
+        Err(e) => println!("{:?}", e),
     });
 
     //cloning url here before the settings are moved into the run_discord function
-    let url: String = settings.get("URL").unwrap();
+    let url: String = settings.get("URL")?;
     thread::spawn(move || {
         discord_listener::run_discord(tx, settings);
     });
 
     let client = reqwest::Client::new();
 
+//TODO: make it so an auth token is sent along with the text
     loop {
         let text: String = rx.recv().unwrap_or_default();
         if text.chars().count() >= 2 {
-            print!("Sending text \"{}\" to url: {}\t->", text, url);
+            info!("Sending text \"{}\" to url: {}\t->", text, url);
             let mut map = HashMap::new();
             map.insert("text", text);
+            //map.insert("auth_token", authToken);
             let res = client
                 .post(&url)
                 .json(&map)
@@ -74,30 +70,4 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 }
 
-fn start_redirect_server(port: &String, redirect_url: &String) {
-    let mut redirect_response = String::from("HTTP/1.1 301 Moved Permanently\nLocation: ");
-    redirect_response.push_str(redirect_url);
-    let mut ip = "0.0.0.0:".to_owned();
-    ip.push_str(&port);
-    info!("Binding to {}", ip);
-    let listener = TcpListener::bind(ip).unwrap();
-    for stream in listener.incoming() {
-        info!("Got tcp request");
-        if let Ok(mut s) = stream {
-            let mut data = [0 as u8; 200]; // using 200 byte buffer
-                                           // this next block is the conditional of the while block
-            while match s.read(&mut data) {
-                Ok(_) => {
-                    info!(
-                        "Data Received: {}",
-                        String::from_utf8(data.to_vec()).unwrap()
-                    );
-                    // return Redirect response
-                    s.write(redirect_response.as_bytes()).unwrap();
-                    false
-                }
-                Err(_) => false,
-            } {} // this thing is the body of the while loop
-        }
-    }
-}
+
