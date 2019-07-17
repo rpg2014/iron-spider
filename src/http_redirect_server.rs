@@ -14,7 +14,8 @@ pub fn start_redirect_server(port: &String, redirect_url: &String) -> Result<(),
     let mut ip = "0.0.0.0:".to_owned();
     ip.push_str(&port);
     info!("Binding redirect server to {}", ip);
-    let listener = TcpListener::bind(ip)?;
+    let listener = TcpListener::bind(ip).unwrap();
+    info!("Bound to ip");
     for stream in listener.incoming() {
         debug!("Got tcp request");
         let mut s = stream?;
